@@ -1,58 +1,15 @@
+#include "viewer.h"
+
+#include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstdio>
 #include <print>
 #include <stdexcept>
-#include <utility>
+#include <vector>
 
 #include "GLFW/glfw3.h"
 #include "glad/glad.h"
-
-class Window {
- public:
-  explicit Window(const char* name, int width = 800, int height = 600);
-
-  template <typename Func, typename... Args>
-  void show(Func func, Args&&... args) {
-    while (glfwWindowShouldClose(window_) == GLFW_FALSE) {
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-      func(std::forward<Args>(args)...);
-      glfwPollEvents();
-      glfwSwapBuffers(window_);
-    }
-  }
-
-  void show() {
-    show([]() {});
-  }
-
-  Window(const Window&) = delete;
-  Window(Window&&) = delete;
-
-  Window& operator=(const Window&) = delete;
-  Window& operator=(Window&&) = delete;
-
-  ~Window() {
-    if (window_) glfwDestroyWindow(window_);
-
-    glfwTerminate();
-  }
-
-  template <typename T>
-  auto framebuffer_size() const {
-    int width{};
-    int height{};
-    glfwGetFramebufferSize(window_, &width, &height);
-    return std::make_pair<T, T>(width, height);
-  }
-
- private:
-  friend void glfw_key_callback(GLFWwindow* window, int key, int scancode,
-                                int action, int mods);
-
-  GLFWwindow* window_{nullptr};
-
-  int polygon_draw_mode_{GL_FILL};
-};
 
 void glfw_error_callback(int error, const char* description) {
   printf("glfw error %d: %s\n", error, description);
@@ -162,6 +119,7 @@ Window::Window(const char* name, int width, int height) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_CONTEXT_DEBUG, GLFW_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   glfwWindowHint(GLFW_SAMPLES, 4);
   window_ = glfwCreateWindow(width, height, name, nullptr, nullptr);
   if (window_ == nullptr) {
@@ -200,28 +158,6 @@ Window::Window(const char* name, int width, int height) {
   glPointSize(4);
   glEnable(GL_DEPTH_TEST);
 }
-
-struct Shader {
-  Shader(const char* const vertex_shader_source,
-         const char* const fragment_shader_source);
-  Shader(const Shader&) = delete;
-  Shader(Shader&&) = delete;
-  Shader& operator=(const Shader&) = delete;
-  Shader& operator=(Shader&&) = delete;
-
-  ~Shader() { glDeleteProgram(shader_program_); }
-
-  void use() const { glUseProgram(shader_program_); }
-
-  template <typename T>
-  void set_uniform(const char* name, T v0, T v1, T v2, T v3) const;
-
-  template <typename T>
-  void set_uniform(const char* name, const T& value) const;
-
- private:
-  GLuint shader_program_{};
-};
 
 Shader::Shader(const char* const vertex_shader_source,
                const char* const fragment_shader_source) {
@@ -263,64 +199,39 @@ Shader::Shader(const char* const vertex_shader_source,
 
   glUseProgram(shader_program_);
 }
+// 32-bit surface container
 
-template <>
-void Shader::set_uniform(const char* name, float v0, float v1, float v2,
-                         float v3) const {
-  glUniform4f(glGetUniformLocation(shader_program_, name), v0, v1, v2, v3);
+Surface::Surface(int w, int h)
+    : width(w), height(h), pixels(width * height, 0) {}
+void Surface::Clear(uint32_t c) { std::fill(pixels.begin(), pixels.end(), c); }
+void Surface::Plot(int x, int y, uint32_t c) { pixels[y * width + x] = c; }
+
+// class Texture {};
+
+Texture::Texture(int w, int h, int slot) : width_(w), height_(h), slot_(slot) {
+  glGenTextures(1, &texture_);
+  glActiveTexture(GL_TEXTURE0 + slot_);
+  glBindTexture(GL_TEXTURE_2D, texture_);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, nullptr);
 }
 
-template <>
-void Shader::set_uniform(const char* name, const int& value) const {
-  glUniform1i(glGetUniformLocation(shader_program_, name), value);
+void Texture::upload(const Surface& s) {
+  glBindTexture(GL_TEXTURE_2D, texture_);
+  glActiveTexture(GL_TEXTURE0 + slot_);
+  // glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, GL_RGBA,
+  //                 GL_UNSIGNED_BYTE, s.pixels.data());
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, s.pixels.data());
 }
 
-template <>
-void Shader::set_uniform(const char* name, const float& value) const {
-  glUniform1f(glGetUniformLocation(shader_program_, name), value);
-}
-
-// template <>
-// void Shader::set_uniform<>(const char* name, const glm::mat4& value) const {
-//   glUniformMatrix4fv(glGetUniformLocation(shader_program_, name), 1,
-//   GL_FALSE,
-//                      glm::value_ptr(value));
-// }
-
-// template <>
-// void Shader::set_uniform<>(const char* name, const glm::vec3& value) const {
-//   glUniform3fv(glGetUniformLocation(shader_program_, name), 1,
-//                glm::value_ptr(value));
-// }
-
-constexpr auto* vertex_shader_source = R"(
-#version 460 core
-
-in vec4 p;
-in vec2 t;
-out vec2 u;
-
-void main() {
-  gl_Position = p;
-  u = t;
-}
-)";
-
-constexpr auto* fragment_shader_source = R"(
-#version 460 core
-
-uniform sampler2D c;
-in vec2 u;
-out vec4 f;
-
-void main() {
-  f = texture(c,u);
-}
-)";
-
-auto main(int argc, char** argv) -> int {
-  Window window("window");
-  Shader shader(vertex_shader_source, fragment_shader_source);
-  window.show();
-  return 0;
+void Texture::download(Surface& s) {
+  glBindTexture(GL_TEXTURE_2D, texture_);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, s.pixels.data());
 }

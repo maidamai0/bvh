@@ -16,8 +16,9 @@ if(MSVC)
     add_compile_options(/Zc:__cplusplus)
 endif()
 
-add_executable(bvh main.cpp)
+add_library(viewer viewer.cpp)
+target_link_libraries(viewer PUBLIC glad glfw)
+target_compile_definitions(viewer PUBLIC GLFW_INCLUDE_NONE)
 
-add_executable(viewer viewer.cpp)
-target_link_libraries(viewer PRIVATE glad glfw)
-target_compile_definitions(viewer PRIVATE GLFW_INCLUDE_NONE)
+add_executable(bvh bvh.cpp)
+target_link_libraries(bvh PRIVATE viewer)

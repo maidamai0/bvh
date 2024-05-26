@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <limits>
 #include <print>
-#include <string>
 #include <vector>
 
 template <typename T>
@@ -21,20 +20,28 @@ using index_t = uint32_t;
 struct timer {
   using clock_t = std::chrono::steady_clock;
   using time_point_t = clock_t::time_point;
-  timer(const std::string &_name) : name(_name) { start = clock_t::now(); }
-  ~timer() {
+
+  timer() { start = clock_t::now(); }
+
+  float elapsed() {
     using namespace std::chrono;
-    auto elapsed_ms = duration_cast<milliseconds>(clock_t::now() - start);
-    std::println("{} cost: {}ms", name, elapsed_ms.count());
+    auto elapsed_ms = duration_cast<microseconds>(clock_t::now() - start);
+    return static_cast<float>(elapsed_ms.count()) / 1000;
   }
+
   timer &operator=(const timer &) = delete;
   timer(const timer &) = delete;
 
   time_point_t start;
-  std::string name;
 };
 
-#define TRACE timer _t(__func__)
+struct scope_timer : timer {
+  scope_timer(const char *name) : name(name) {}
+  ~scope_timer() { std::println("{} cost: {}ms", name, elapsed()); }
+  const char *name;
+};
+
+#define TRACE scope_timer __scope_timer__(__FUNCTION__);
 
 uint32_t inline random_uint(uint32_t &seed) {
   seed ^= (seed << 13);

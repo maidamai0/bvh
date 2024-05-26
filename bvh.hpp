@@ -66,7 +66,7 @@ struct basic_bvh {
 
     // split triangles into two halves
     index_t left = node.first_tri_idx;
-    index_t right = left + node.tri_count;
+    index_t right = left + node.tri_count - 1;
     while (left < right) {
       if (triangles[indices[left]].centroid[split_axis] < split_pos) {
         ++left;
