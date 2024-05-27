@@ -138,8 +138,8 @@ Window::Window(const char* name, int width, int height) {
     printf("failed to initialize GLAD\n");
     throw std::runtime_error("failed to initialize GLAD");
   }
-  printf("OpenGL: %d.%d\n", GLVersion.major, GLVersion.minor);
-  printf("GLFW: %s\n", glfwGetVersionString());
+  std::println("OpenGL: {}.{}, GLFW: {}", GLVersion.major, GLVersion.minor,
+               glfwGetVersionString());
 
   int flags{};
   glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
