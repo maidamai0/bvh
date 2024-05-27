@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdalign.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -186,11 +188,13 @@ struct aabb {
   float3 min{max_v<float>}, max{min_v<float>};
 };
 
-struct bvh_node {
+struct alignas(32) bvh_node {
   aabb bounds;              // 24 bytes
-  index_t left_node{};      // 4 bytes, right child is always left_child + 1
-  index_t first_tri_idx{};  // 4 bytes
-  index_t tri_count{};      // 4 bytes
+  union {
+    index_t left_node;
+    index_t first_tri_idx{};  // 4 bytes
+  };
+  index_t tri_count{};  // 4 bytes
 
   bool is_leaf() const { return tri_count > 0; }
 };
