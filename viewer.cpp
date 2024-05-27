@@ -218,17 +218,15 @@ Texture::Texture(int w, int h, int slot) : width_(w), height_(h), slot_(slot) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_BGRA,
                GL_UNSIGNED_BYTE, nullptr);
 }
 
 void Texture::upload(const Surface& s) {
   glBindTexture(GL_TEXTURE_2D, texture_);
   glActiveTexture(GL_TEXTURE0 + slot_);
-  // glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, GL_RGBA,
-  //                 GL_UNSIGNED_BYTE, s.pixels.data());
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA,
-               GL_UNSIGNED_BYTE, s.pixels.data());
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, GL_BGRA,
+                  GL_UNSIGNED_BYTE, s.pixels.data());
 }
 
 void Texture::download(Surface& s) {

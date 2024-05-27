@@ -143,7 +143,7 @@ using triangle_list = std::vector<triangle>;
 
 struct ray {
   float3 origin, direction;
-  float t = infinity_v<float>;
+  float t = 1e30f;
 };
 
 struct aabb {
