@@ -22,3 +22,6 @@ target_compile_definitions(viewer PUBLIC GLFW_INCLUDE_NONE)
 
 add_executable(basic basic.cpp)
 target_link_libraries(basic PRIVATE viewer)
+
+add_executable(sah sah.cpp)
+target_link_libraries(sah PRIVATE viewer)
