@@ -16,6 +16,11 @@ if(MSVC)
     add_compile_options(/Zc:__cplusplus)
 endif()
 
+if(LINUX)
+    find_package(TBB REQUIRED)
+    link_libraries(TBB::tbb)
+endif()
+
 add_library(viewer viewer.cpp)
 target_link_libraries(viewer PUBLIC glad glfw)
 target_compile_definitions(viewer PUBLIC GLFW_INCLUDE_NONE)
