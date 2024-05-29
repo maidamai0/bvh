@@ -1,10 +1,11 @@
+#include "sah.hpp"
+
 #include <array>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 
-#include "basic.hpp"
 #include "viewer.h"
 
 triangle_list load_model() {
@@ -35,7 +36,7 @@ triangle_list load_model() {
 
 int main(int argc, char** argv) {
   auto triangles = load_model();
-  basic_bvh bvh(triangles);
+  sah_bvh bvh(triangles);
   run("sah bvh", 640, 640, [&](Surface& canvas) {
     timer timer;
     canvas.Clear(0);

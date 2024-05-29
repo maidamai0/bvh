@@ -197,6 +197,7 @@ struct alignas(32) bvh_node {
   index_t tri_count{};  // 4 bytes
 
   bool is_leaf() const { return tri_count > 0; }
+  float cost() const { return bounds.area() * tri_count; }
 };
 
 void inline intersect_tri(const triangle &t, ray &r) {
