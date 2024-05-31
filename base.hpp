@@ -146,7 +146,11 @@ struct triangle {
 using triangle_list = std::vector<triangle>;
 
 struct ray {
-  float3 origin, direction;
+  ray(float3 origin, float3 direction)
+      : origin(origin),
+        direction(direction),
+        r_direction(1 / direction.x, 1 / direction.y, 1 / direction.z) {}
+  float3 origin, direction, r_direction;
   float t = 1e30f;
 };
 
@@ -167,21 +171,40 @@ struct aabb {
   }
 
   bool intersect(const ray &ray) const {
-    float tx1 = (min.x - ray.origin.x) / ray.direction.x;
-    float tx2 = (max.x - ray.origin.x) / ray.direction.x;
+    float tx1 = (min.x - ray.origin.x) * ray.r_direction.x;
+    float tx2 = (max.x - ray.origin.x) * ray.r_direction.x;
     float tmin = std::min(tx1, tx2), tmax = std::max(tx1, tx2);
 
-    float ty1 = (min.y - ray.origin.y) / ray.direction.y;
-    float ty2 = (max.y - ray.origin.y) / ray.direction.y;
+    float ty1 = (min.y - ray.origin.y) * ray.r_direction.y;
+    float ty2 = (max.y - ray.origin.y) * ray.r_direction.y;
     tmin = std::max(tmin, std::min(ty1, ty2));
     tmax = std::min(tmax, std::max(ty1, ty2));
 
-    float tz1 = (min.z - ray.origin.z) / ray.direction.z;
-    float tz2 = (max.z - ray.origin.z) / ray.direction.z;
+    float tz1 = (min.z - ray.origin.z) * ray.r_direction.z;
+    float tz2 = (max.z - ray.origin.z) * ray.r_direction.z;
     tmin = std::max(tmin, std::min(tz1, tz2));
     tmax = std::min(tmax, std::max(tz1, tz2));
 
     return tmax >= tmin && tmin < ray.t && tmax > 0;
+  }
+
+  float intersect2(const ray &ray) const {
+    float tx1 = (min.x - ray.origin.x) * ray.r_direction.x;
+    float tx2 = (max.x - ray.origin.x) * ray.r_direction.x;
+    float tmin = std::min(tx1, tx2), tmax = std::max(tx1, tx2);
+
+    float ty1 = (min.y - ray.origin.y) * ray.r_direction.y;
+    float ty2 = (max.y - ray.origin.y) * ray.r_direction.y;
+    tmin = std::max(tmin, std::min(ty1, ty2));
+    tmax = std::min(tmax, std::max(ty1, ty2));
+
+    float tz1 = (min.z - ray.origin.z) * ray.r_direction.z;
+    float tz2 = (max.z - ray.origin.z) * ray.r_direction.z;
+    tmin = std::max(tmin, std::min(tz1, tz2));
+    tmax = std::min(tmax, std::max(tz1, tz2));
+
+    if (tmax >= tmin && tmin < ray.t && tmax > 0) return tmin;
+    return 1e30f;
   }
 
   float center(int axis) const { return (min[axis] + max[axis]) * 0.5f; }

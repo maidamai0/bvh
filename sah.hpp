@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <numeric>
 #include <print>
 #include <tuple>
@@ -11,6 +12,45 @@
 struct sah_bvh {
   sah_bvh(triangle_list& tris) : triangles(tris) { build(); }
   void intersect(ray& r) const { intersect_impl(r, 0); }
+
+  // broken
+  void intersect2(ray& r) const {
+    const bvh_node* node = &nodes[0];
+    std::array<const bvh_node*, 64> stack{};
+    index_t stack_idx = 0;
+
+    while (true) {
+      if (node->is_leaf()) {
+        for (index_t i = 0; i < node->tri_count; ++i) {
+          intersect_tri(triangles[node->first_tri_idx + i], r);
+        }
+
+        if (stack_idx == 0)
+          break;
+        else
+          node = stack[--stack_idx];
+        continue;
+      }
+
+      const bvh_node* child1 = &nodes[node->left_node];
+      const bvh_node* child2 = &nodes[node->left_node + 1];
+      float dist1 = child1->bounds.intersect2(r);
+      float dist2 = child2->bounds.intersect2(r);
+      if (dist1 > dist2) {
+        std::swap(dist1, dist2);
+        std::swap(child1, child2);
+      }
+      if (dist1 == 1e30f) {
+        if (stack_idx == 0)
+          break;
+        else
+          node = stack[--stack_idx];
+      } else {
+        node = child1;
+        if (dist2 != 1e30f) stack[stack_idx++] = child2;
+      }
+    }
+  }
 
  private:
   void intersect_impl(ray& r, index_t node_idx) const {
