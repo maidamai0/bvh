@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdio>
 #include <numeric>
 #include <print>
 #include <tuple>
@@ -102,9 +101,10 @@ struct sah_bvh {
     int best_axis = -1;
     float best_pos = 0.0f;
     float best_cost = 1e30f;
+    auto end = node.tri_count + node.first_tri_idx;
     for (int axis = 0; axis < 3; ++axis) {
-      for (index_t i = 0; i < node.tri_count; ++i) {
-        auto& tri = triangles[indices[node.first_tri_idx + i]];
+      for (index_t i = node.first_tri_idx; i < end; ++i) {
+        auto& tri = triangles[indices[i]];
         float pos = tri.centroid[axis];
         float cost = sah_cost(node, axis, pos);
         if (cost < best_cost) {
@@ -121,8 +121,10 @@ struct sah_bvh {
   float sah_cost(const bvh_node& node, int axis, float pos) {
     aabb left_box, right_box;
     int left_cnt = 0, right_cnt = 0;
-    for (index_t i = 0; i < node.tri_count; ++i) {
-      const auto& tri = triangles[indices[node.first_tri_idx + i]];
+    index_t i = node.first_tri_idx;
+    index_t end = node.first_tri_idx + node.tri_count;
+    for (; i < end; ++i) {
+      const auto& tri = triangles[indices[i]];
       if (tri.centroid[axis] < pos) {
         ++left_cnt;
         left_box.grow(tri.vertex0);
