@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 #include <execution>
 #include <fstream>
 #include <numeric>
+#include <print>
 #include <vector>
 
 #include "viewer.h"

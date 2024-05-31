@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdio>
 #include <numeric>
+#include <print>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -37,8 +39,9 @@ struct sah_bvh {
       tri.centroid = (tri.vertex0 + tri.vertex1 + tri.vertex2) * 0.3333f;
     }
 
-    nodes.resize(triangles.size() * 2 - 1);
+    nodes.resize(triangles.size() * 2);
     bvh_node& root = nodes[0];
+    root.first_tri_idx = 0;
     root.tri_count = triangles.size();
     update_bounds(0);
     split(0);
@@ -59,7 +62,6 @@ struct sah_bvh {
     auto& node = nodes[node_idx];
 
     // compute split axis and position
-    float3 extent = node.bounds.max - node.bounds.min;
     const auto [split_axis, split_pos, best_cost] = split_point(node_idx);
 
     if (best_cost >= node.cost()) return;
@@ -67,7 +69,7 @@ struct sah_bvh {
     // split triangles into two halves
     index_t left = node.first_tri_idx;
     index_t right = left + node.tri_count - 1;
-    while (left < right) {
+    while (left <= right) {
       if (triangles[indices[left]].centroid[split_axis] < split_pos) {
         ++left;
       } else {
@@ -81,11 +83,13 @@ struct sah_bvh {
 
     index_t left_node_idx = not_used++;
     index_t right_node_idx = not_used++;
-    node.left_node = left_node_idx;
     nodes[left_node_idx].first_tri_idx = node.first_tri_idx;
     nodes[left_node_idx].tri_count = left_count;
     nodes[right_node_idx].first_tri_idx = left;
     nodes[right_node_idx].tri_count = node.tri_count - left_count;
+
+    node.left_node = left_node_idx;
+    node.tri_count = 0;
 
     update_bounds(left_node_idx);
     update_bounds(right_node_idx);
@@ -137,7 +141,7 @@ struct sah_bvh {
 
   std::vector<bvh_node> nodes;
   std::vector<index_t> indices;
-  index_t not_used = 0;
+  index_t not_used = 2;
 
   triangle_list& triangles;
 };

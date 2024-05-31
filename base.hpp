@@ -6,8 +6,10 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <limits>
 #include <print>
+#include <string>
 #include <vector>
 
 template <typename T>
@@ -15,7 +17,7 @@ constexpr T infinity_v = std::numeric_limits<T>::infinity();
 template <typename T>
 constexpr T max_v = std::numeric_limits<T>::max();
 template <typename T>
-constexpr T min_v = std::numeric_limits<T>::min();
+constexpr T min_v = std::numeric_limits<T>::lowest();
 
 using index_t = uint32_t;
 
@@ -198,6 +200,14 @@ struct alignas(32) bvh_node {
 
   bool is_leaf() const { return tri_count > 0; }
   float cost() const { return bounds.area() * tri_count; }
+  std::string print() {
+    if (is_leaf()) {
+      return std::format("leaf: [{},{})", first_tri_idx,
+                         first_tri_idx + tri_count);
+    } else {
+      return std::format("node: ({},{})", left_node, left_node + 1);
+    }
+  }
 };
 
 void inline intersect_tri(const triangle &t, ray &r) {
