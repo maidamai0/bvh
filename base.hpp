@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <format>
 #include <limits>
 #include <print>
@@ -223,7 +224,7 @@ struct alignas(32) bvh_node {
 
   bool is_leaf() const { return tri_count > 0; }
   float cost() const { return bounds.area() * tri_count; }
-  std::string print() {
+  std::string print() const {
     if (is_leaf()) {
       return std::format("leaf: [{},{})", first_tri_idx,
                          first_tri_idx + tri_count);
@@ -239,7 +240,7 @@ void inline intersect_tri(const triangle &t, ray &r) {
   float3 p = cross(r.direction, e2);
 
   float det = dot(e1, p);
-  if (det - 1e-4f && det < -1e-4f) return;
+  if (std::abs(det) < 1e-4f) return;
 
   float inv_det = 1 / det;
   float3 tvec = r.origin - t.vertex0;

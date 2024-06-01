@@ -22,7 +22,7 @@ struct sah_bvh {
     while (true) {
       if (node->is_leaf()) {
         for (index_t i = 0; i < node->tri_count; ++i) {
-          intersect_tri(triangles[node->first_tri_idx + i], r);
+          intersect_tri(triangles[indices[node->first_tri_idx + i]], r);
         }
 
         if (stack_idx == 0)

@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
       if (r.t < 1e30f) canvas.Plot(x, y, c * 0x10101);
     });
 
-    std::println("tracing time: {}ms ({}K rays/s)", timer.elapsed(),
-                 float(canvas.width * canvas.height) / timer.elapsed());
+    std::println("tracing time: {}ms ({}M rays/s)", timer.elapsed(),
+                 float(canvas.width * canvas.height) / timer.elapsed() / 1000);
   });
 
   return EXIT_SUCCESS;
