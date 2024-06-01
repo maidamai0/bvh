@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-#include <numeric>
 #include <print>
 #include <tuple>
 #include <utility>
@@ -9,96 +7,14 @@
 
 #include "base.hpp"
 
-struct sah_bvh {
-  sah_bvh(triangle_list& tris) : triangles(tris) { build(); }
-  void intersect(ray& r) const { intersect_impl(r, 0); }
-
-  // broken
-  void intersect2(ray& r) const {
-    const bvh_node* node = &nodes[0];
-    std::array<const bvh_node*, 64> stack{};
-    index_t stack_idx = 0;
-
-    while (true) {
-      if (node->is_leaf()) {
-        for (index_t i = 0; i < node->tri_count; ++i) {
-          intersect_tri(triangles[indices[node->first_tri_idx + i]], r);
-        }
-
-        if (stack_idx == 0)
-          break;
-        else
-          node = stack[--stack_idx];
-        continue;
-      }
-
-      const bvh_node* child1 = &nodes[node->left_node];
-      const bvh_node* child2 = &nodes[node->left_node + 1];
-      float dist1 = child1->bounds.intersect2(r);
-      float dist2 = child2->bounds.intersect2(r);
-      if (dist1 > dist2) {
-        std::swap(dist1, dist2);
-        std::swap(child1, child2);
-      }
-      if (dist1 == 1e30f) {
-        if (stack_idx == 0)
-          break;
-        else
-          node = stack[--stack_idx];
-      } else {
-        node = child1;
-        if (dist2 != 1e30f) stack[stack_idx++] = child2;
-      }
-    }
-  }
-
- private:
-  void intersect_impl(ray& r, index_t node_idx) const {
-    const bvh_node& node = nodes[node_idx];
-    if (!node.bounds.intersect(r)) return;
-
-    if (node.is_leaf()) {
-      for (index_t i = 0; i < node.tri_count; ++i) {
-        intersect_tri(triangles[indices[node.first_tri_idx + i]], r);
-      }
-      return;
-    }
-
-    intersect_impl(r, node.left_node);
-    intersect_impl(r, node.left_node + 1);
-  }
-
-  void build() {
-    TRACE;
-    indices.resize(triangles.size());
-    std::iota(indices.begin(), indices.end(), 0);
-
-    // compute centroids
-    for (auto& tri : triangles) {
-      tri.centroid = (tri.vertex0 + tri.vertex1 + tri.vertex2) * 0.3333f;
-    }
-
-    nodes.resize(triangles.size() * 2);
-    bvh_node& root = nodes[0];
-    root.first_tri_idx = 0;
-    root.tri_count = triangles.size();
-    update_bounds(0);
-    split(0);
-  }
-
-  void update_bounds(index_t node_idx) {
-    bvh_node& node = nodes[node_idx];
-    index_t end = node.first_tri_idx + node.tri_count;
-    for (index_t i = node.first_tri_idx; i < end; ++i) {
-      auto& tri = triangles[indices[i]];
-      node.bounds.grow(tri.vertex0);
-      node.bounds.grow(tri.vertex1);
-      node.bounds.grow(tri.vertex2);
-    }
-  }
+struct sah {
+  sah(triangle_list& tris, std::vector<bvh_node>& nodes,
+      std::vector<index_t>& indices)
+      : triangles(tris), nodes(nodes), indices(indices) {}
 
   void split(index_t node_idx) {
     auto& node = nodes[node_idx];
+    update_bounds(node_idx);
 
     // compute split axis and position
     const auto [split_axis, split_pos, best_cost] = split_point(node_idx);
@@ -130,10 +46,19 @@ struct sah_bvh {
     node.left_node = left_node_idx;
     node.tri_count = 0;
 
-    update_bounds(left_node_idx);
-    update_bounds(right_node_idx);
     split(left_node_idx);
     split(right_node_idx);
+  }
+
+  void update_bounds(index_t node_idx) {
+    bvh_node& node = nodes[node_idx];
+    index_t end = node.first_tri_idx + node.tri_count;
+    for (index_t i = node.first_tri_idx; i < end; ++i) {
+      auto& tri = triangles[indices[i]];
+      node.bounds.grow(tri.vertex0);
+      node.bounds.grow(tri.vertex1);
+      node.bounds.grow(tri.vertex2);
+    }
   }
 
   std::tuple<int, float, float> split_point(index_t node_idx) {
@@ -181,9 +106,9 @@ struct sah_bvh {
     return cost > 0 ? cost : 1e30f;
   }
 
-  std::vector<bvh_node> nodes;
-  std::vector<index_t> indices;
-  index_t not_used = 2;
-
   triangle_list& triangles;
+  std::vector<bvh_node>& nodes;
+  std::vector<index_t>& indices;
+
+  index_t not_used = 2;
 };

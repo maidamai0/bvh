@@ -256,19 +256,3 @@ void inline intersect_tri(const triangle &t, ray &r) {
   if (tt > 1e-4f) r.t = std::min(r.t, tt);
   // std::println("t: {}", r.t);
 }
-
-inline triangle_list make_triangles(size_t size = 64) {
-  triangle_list triangles;
-  triangles.resize(size);
-  for (auto &tri : triangles) {
-    float3 r0(random_float(), random_float(), random_float());
-    float3 r1(random_float(), random_float(), random_float());
-    float3 r2(random_float(), random_float(), random_float());
-
-    tri.vertex0 = r0 * 9 - float3(5);
-    tri.vertex1 = tri.vertex0 + r1;
-    tri.vertex2 = tri.vertex0 + r2;
-  }
-
-  return triangles;
-}
