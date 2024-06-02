@@ -211,6 +211,9 @@ struct aabb {
   float center(int axis) const { return (min[axis] + max[axis]) * 0.5f; }
   float3 center() const { return (min + max) * 0.5f; }
 
+  float extent(int axis) const { return (max[axis] - min[axis]) * 0.5f; }
+  float3 extent() const { return max - min; }
+
   float3 min{max_v<float>}, max{min_v<float>};
 };
 

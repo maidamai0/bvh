@@ -1,11 +1,40 @@
 #pragma once
 
+#include <algorithm>
 #include <print>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 #include "base.hpp"
+
+struct split_point_uniform {
+  static std::vector<float> candidates(const bvh_node& node, int axis,
+                                       triangle_list&, std::vector<index_t>&) {
+    int size = std::min(index_t(100), node.tri_count);
+    float scale = node.bounds.extent(axis) / size;
+    std::vector<float> candidates(size);
+    std::generate_n(candidates.begin(), size,
+                    [scale, cnt = 0, base = node.bounds.min[axis]]() mutable {
+                      return base + scale * cnt++;
+                    });
+    return candidates;
+  }
+};
+
+struct split_point_centroid {
+  static std::vector<float> candidates(const bvh_node& node, int axis,
+                                       triangle_list& triangles,
+                                       std::vector<index_t>& indices) {
+    std::vector<float> candidates(node.tri_count);
+    index_t end = node.first_tri_idx + node.tri_count;
+    for (index_t i = node.first_tri_idx; i < end; ++i) {
+      auto& tri = triangles[indices[i]];
+      candidates[i - node.first_tri_idx] = tri.centroid[axis];
+    }
+    return candidates;
+  }
+};
 
 struct sah {
   sah(triangle_list& tris, std::vector<bvh_node>& nodes,
@@ -65,12 +94,11 @@ struct sah {
     const bvh_node& node = nodes[node_idx];
     int best_axis = -1;
     float best_pos = 0.0f;
-    float best_cost = 1e30f;
-    auto end = node.tri_count + node.first_tri_idx;
+    float best_cost = max_v<float>;
     for (int axis = 0; axis < 3; ++axis) {
-      for (index_t i = node.first_tri_idx; i < end; ++i) {
-        auto& tri = triangles[indices[i]];
-        float pos = tri.centroid[axis];
+      const auto candidates =
+          split_point_centroid::candidates(node, axis, triangles, indices);
+      for (const auto pos : candidates) {
         float cost = sah_cost(node, axis, pos);
         if (cost < best_cost) {
           best_axis = axis;
