@@ -27,6 +27,3 @@ target_compile_definitions(viewer PUBLIC GLFW_INCLUDE_NONE)
 
 add_executable(bvh bvh.cpp)
 target_link_libraries(bvh PRIVATE viewer)
-
-add_executable(reference reference.cpp)
-target_link_libraries(reference PRIVATE viewer)
