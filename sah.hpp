@@ -11,7 +11,7 @@
 struct split_point_uniform {
   static std::vector<float> candidates(const bvh_node& node, int axis,
                                        triangle_list&, std::vector<index_t>&) {
-    int size = std::min(index_t(100), node.tri_count);
+    int size = 4;  // std::min(index_t(4), node.tri_count);
     float scale = node.bounds.extent(axis) / size;
     std::vector<float> candidates(size);
     std::generate_n(candidates.begin(), size,
@@ -97,7 +97,7 @@ struct sah {
     float best_cost = max_v<float>;
     for (int axis = 0; axis < 3; ++axis) {
       const auto candidates =
-          split_point_centroid::candidates(node, axis, triangles, indices);
+          split_point_uniform::candidates(node, axis, triangles, indices);
       for (const auto pos : candidates) {
         float cost = sah_cost(node, axis, pos);
         if (cost < best_cost) {
